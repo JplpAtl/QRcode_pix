@@ -1,119 +1,123 @@
-<div>
-  <div id="qrcode"></div>
-  <br />
-  <textarea id="payload" readonly></textarea>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
-<script>
-  console.log(document.referrer)
-  console.log(document)
-  function getThirdPartyCodes() {
-    // let path = window.location.pathname;
-    let path = "/ThirdParty/BAACB4245B1C039C/9D5CA9DAF212B8D2/916F4EBC4B1D0C739FD7A4DD12DCB7DB742DE60BE168C357";
-    let parts = path.split("/");
-    let k = parts[2];
-    let c = parts[3];
-    let d = parts[4];
-    const url = `https://purcell.terminalonline.com.br/Importer?k=${k}&c=${c}&d=${d}`;
+<html>
+  <body>
+    <div>
+      <div id="qrcode"></div>
+      <br />
+      <textarea id="payload" readonly></textarea>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+    <script>
+      console.log(document.referrer)
+      console.log(document)
+      function getThirdPartyCodes() {
+        // let path = window.location.pathname;
+        let path = "/ThirdParty/BAACB4245B1C039C/9D5CA9DAF212B8D2/916F4EBC4B1D0C739FD7A4DD12DCB7DB742DE60BE168C357";
+        let parts = path.split("/");
+        let k = parts[2];
+        let c = parts[3];
+        let d = parts[4];
+        const url = `https://purcell.terminalonline.com.br/Importer?k=${k}&c=${c}&d=${d}`;
 
-    return url;
-  }
-  
-  async function buscarDados() {
-    try {
-      const response = await fetch(getThirdPartyCodes());
-      const data = await response.json(); // 1º parse
-
-      const results = JSON.parse(data.results); // 2º parse
-
-      // Container
-      const container = results.Cntr;
-      const empresa = results.Carrier;
-
-      // Somando os preços com for
-      let total = 0;
-      for (const item of results.Items) {
-        total += item.Price;
+        return url;
       }
+      
+      async function buscarDados() {
+        try {
+          const response = await fetch(getThirdPartyCodes());
+          const data = await response.json(); // 1º parse
 
-      return {
-        empresa: empresa,
-        container: container,
-        total: total,
-      };
-    } catch (error) {
-      console.error("Erro ao buscar dados:", error);
-    }
-  }
+          const results = JSON.parse(data.results); // 2º parse
 
-  // Função para calcular CRC16-CCITT (XModem)
-  function crc16(str) {
-    let crc = 0xffff;
-    for (let i = 0; i < str.length; i++) {
-      crc ^= str.charCodeAt(i) << 8;
-      for (let j = 0; j < 8; j++) {
-        if ((crc & 0x8000) !== 0) {
-          crc = (crc << 1) ^ 0x1021;
-        } else {
-          crc = crc << 1;
+          // Container
+          const container = results.Cntr;
+          const empresa = results.Carrier;
+
+          // Somando os preços com for
+          let total = 0;
+          for (const item of results.Items) {
+            total += item.Price;
+          }
+
+          return {
+            empresa: empresa,
+            container: container,
+            total: total,
+          };
+        } catch (error) {
+          console.error("Erro ao buscar dados:", error);
         }
-        crc &= 0xffff;
       }
-    }
-    return crc.toString(16).toUpperCase().padStart(4, "0");
-  }
 
-  async function gerarQRCode() {
-    let getCntr = await buscarDados();
-    let descricao = `${getCntr.container} ${getCntr.empresa}` || "Pagamento";
-    let valor = `${getCntr.total}` || "0.00";
+      // Função para calcular CRC16-CCITT (XModem)
+      function crc16(str) {
+        let crc = 0xffff;
+        for (let i = 0; i < str.length; i++) {
+          crc ^= str.charCodeAt(i) << 8;
+          for (let j = 0; j < 8; j++) {
+            if ((crc & 0x8000) !== 0) {
+              crc = (crc << 1) ^ 0x1021;
+            } else {
+              crc = crc << 1;
+            }
+            crc &= 0xffff;
+          }
+        }
+        return crc.toString(16).toUpperCase().padStart(4, "0");
+      }
 
-    // Monta payload básico PIX (com chave fixa, nome, cidade etc.)
-    // Atenção: cada campo tem o formato -> ID + tamanho + valor
-    let payload =
-      "000201" + // Início
-      "26510014BR.GOV.BCB.PIX" + // GUI PIX
-      "01" +
-      String("jp.paiao03@gmail.com".length).padStart(2, "0") +
-      "jp.paiao03@gmail.com" + // chave PIX
-      "02" +
-      String(descricao.length).padStart(2, "0") +
-      descricao + // descrição dinâmica
-      "52040000" + // Merchant Category Code
-      "5303986" + // Moeda (986 = BRL)
-      "54" +
-      String(valor.length).padStart(2, "0") +
-      valor + // valor dinâmico
-      "5802BR" + // País
-      "59" +
-      String("JOAO PEDRO DE LIMA PAIAO".length).padStart(2, "0") +
-      "JOAO PEDRO DE LIMA PAIAO" + // nome recebedor
-      "60" +
-      String("CUBATAO".length).padStart(2, "0") +
-      "CUBATAO" + // cidade
-      "62" +
-      String("0521XvGEI5QFKJzZ9TapvFUZs".length + 4).padStart(2, "0") +
-      "05" +
-      String("21XvGEI5QFKJzZ9TapvFUZs".length).padStart(2, "0") +
-      "21XvGEI5QFKJzZ9TapvFUZs" + // TxID
-      "6304"; // Campo CRC (fixo até aqui)
+      async function gerarQRCode() {
+        let getCntr = await buscarDados();
+        let descricao = `${getCntr.container} ${getCntr.empresa}` || "Pagamento";
+        let valor = `${getCntr.total}` || "0.00";
 
-    // Calcula CRC do payload até "6304"
-    let crc = crc16(payload);
-    payload += crc;
+        // Monta payload básico PIX (com chave fixa, nome, cidade etc.)
+        // Atenção: cada campo tem o formato -> ID + tamanho + valor
+        let payload =
+          "000201" + // Início
+          "26510014BR.GOV.BCB.PIX" + // GUI PIX
+          "01" +
+          String("jp.paiao03@gmail.com".length).padStart(2, "0") +
+          "jp.paiao03@gmail.com" + // chave PIX
+          "02" +
+          String(descricao.length).padStart(2, "0") +
+          descricao + // descrição dinâmica
+          "52040000" + // Merchant Category Code
+          "5303986" + // Moeda (986 = BRL)
+          "54" +
+          String(valor.length).padStart(2, "0") +
+          valor + // valor dinâmico
+          "5802BR" + // País
+          "59" +
+          String("JOAO PEDRO DE LIMA PAIAO".length).padStart(2, "0") +
+          "JOAO PEDRO DE LIMA PAIAO" + // nome recebedor
+          "60" +
+          String("CUBATAO".length).padStart(2, "0") +
+          "CUBATAO" + // cidade
+          "62" +
+          String("0521XvGEI5QFKJzZ9TapvFUZs".length + 4).padStart(2, "0") +
+          "05" +
+          String("21XvGEI5QFKJzZ9TapvFUZs".length).padStart(2, "0") +
+          "21XvGEI5QFKJzZ9TapvFUZs" + // TxID
+          "6304"; // Campo CRC (fixo até aqui)
 
-    // Exibe payload no textarea
-    document.getElementById("payload").value = payload;
+        // Calcula CRC do payload até "6304"
+        let crc = crc16(payload);
+        payload += crc;
 
-    // Gera QR Code
-    let qrcodeContainer = document.getElementById("qrcode");
-    qrcodeContainer.innerHTML = "";
-    new QRCode(qrcodeContainer, {
-      text: payload,
-      width: 150,
-      height: 150,
-    });
-  }
+        // Exibe payload no textarea
+        document.getElementById("payload").value = payload;
 
-  gerarQRCode();
-</script>
+        // Gera QR Code
+        let qrcodeContainer = document.getElementById("qrcode");
+        qrcodeContainer.innerHTML = "";
+        new QRCode(qrcodeContainer, {
+          text: payload,
+          width: 150,
+          height: 150,
+        });
+      }
+
+      gerarQRCode();
+    </script>
+  </body>
+</html>
