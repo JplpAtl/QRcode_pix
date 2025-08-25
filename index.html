@@ -7,7 +7,6 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
     <script>
-      console.log(parent.localStorage.getItem('container'))
       console.log(localStorage.getItem('container'))
       console.log(parent)
 
@@ -16,6 +15,8 @@
       console.log(window.location.search)
       console.log(document)
       console.log(window)
+      
+      console.log(parent.localStorage.getItem('container'))
       
       function getThirdPartyCodes() {
         // let path = window.location.pathname;
@@ -130,6 +131,7 @@
   </body>
 
 </html>
+
 
 
 
